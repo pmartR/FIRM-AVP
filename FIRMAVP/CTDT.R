@@ -1,0 +1,113 @@
+#' CTD Descriptors - Transition
+#'
+#' This function calculates the Transition descriptor of the
+#' CTD descriptors (dim: 24).
+#'
+#' @param x A character vector, as the input protein sequence.
+#'
+#' @return A length 24 named vector
+#'
+
+
+
+extractCTDT_revised <- function(x) {
+  
+  AADict <- c(
+    "A", "C", "D", "E", "F", "G", "H", "I",
+    "L", "K", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y" 
+  )
+  
+  if (all(strsplit(x, split = "")[[1]] %in% AADict) == FALSE) {
+    stop("x has unrecognized amino acid type")
+  }
+  
+  group1 <- list(
+    "hydrophobicity" = c("R", "K", "E", "D", "Q", "N"),
+    "normwaalsvolume" = c("G", "A", "S", "T", "P", "D", "C"),
+    "polarity" = c("L", "I", "F", "W", "C", "M", "V", "Y"),
+    "polarizability" = c("G", "A", "S", "D", "T"),
+    "charge" = c("K", "R"),
+    "secondarystruct" = c("E", "A", "L", "M", "Q", "K", "R", "H"),
+    "solventaccess" = c("A", "L", "F", "C", "G", "I", "V", "W"),
+    "surfacetension" = c("G", "Q", "D", "N", "A", "H", "R")
+  )
+  
+  group2 <- list(
+    "hydrophobicity" = c("G", "A", "S", "T", "P", "H", "Y"),
+    "normwaalsvolume" = c("N", "V", "E", "Q", "I", "L"),
+    "polarity" = c("P", "A", "T", "G", "S"),
+    "polarizability" = c("C", "P", "N", "V", "E", "Q", "I", "L"),
+    "charge" = c(
+      "A", "N", "C", "Q", "G", "H", "I", "L",
+      "M", "F", "P", "S", "T", "W", "Y", "V"
+    ),
+    "secondarystruct" = c("V", "I", "Y", "C", "W", "F", "T"),
+    "solventaccess" = c("R", "K", "Q", "E", "N", "D"),
+    "surfacetension" = c("K", "T", "S", "E", "C")
+  )
+  
+  group3 <- list(
+    "hydrophobicity" = c("C", "L", "V", "I", "M", "F", "W"),
+    "normwaalsvolume" = c("M", "H", "K", "F", "R", "Y", "W"),
+    "polarity" = c("H", "Q", "R", "K", "N", "E", "D"),
+    "polarizability" = c("K", "M", "H", "F", "R", "Y", "W"),
+    "charge" = c("D", "E"),
+    "secondarystruct" = c("G", "N", "P", "S", "D"),
+    "solventaccess" = c("M", "S", "P", "T", "H", "Y"),
+    "surfacetension" = c("I", "L", "M", "F", "P", "W", "Y", "V")
+  )
+  
+  
+  xSplitted <- strsplit(x, split = "")[[1]]
+  n <- nchar(x)
+
+  G <- vector("list", 8)
+  for (i in 1:7) G[[i]] <- rep(NA, n)
+
+  # Get groups for each property & each amino acid
+
+  for (i in 1:8) {
+    try(G[[i]][which(xSplitted %in% group1[[i]])] <- "G1")
+    try(G[[i]][which(xSplitted %in% group2[[i]])] <- "G2")
+    try(G[[i]][which(xSplitted %in% group3[[i]])] <- "G3")
+  }
+
+  # Combine single amino acids by a 2-length step
+
+  for (i in 1:8) G[[i]] <- paste(G[[i]][-n], G[[i]][-1], sep = "")
+  G <- lapply(G, function(x)
+    factor(x, levels = c(
+      "G1G2", "G2G1", "G1G3",
+      "G3G1", "G2G3", "G3G2",
+      "G1G1", "G2G2", "G3G3"
+    )))
+
+  GSummary <- lapply(G, summary)
+
+  # Compute (n_rs + n_sr) / (N - 1)
+
+  CTDT <- vector("list", 8)
+
+  for (i in 1:8) {
+    CTDT[[i]][1] <- sum(GSummary[[i]][c("G1G2", "G2G1")]) / (n - 1)
+    #CTDT[[i]][1]<-CTDT[[i]][1]*100
+    CTDT[[i]][2] <- sum(GSummary[[i]][c("G1G3", "G3G1")]) / (n - 1)
+    #CTDT[[i]][2]<-CTDT[[i]][2]*100
+    CTDT[[i]][3] <- sum(GSummary[[i]][c("G2G3", "G3G2")]) / (n - 1)
+    #CTDT[[i]][3]<-CTDT[[i]][3]*100
+  }
+
+  CTDT <- unlist(CTDT)
+
+  names(CTDT) <- paste(
+    "prop", rep(1:8, each = 3), ".",
+    rep(c("Tr1221", "Tr1331", "Tr2332"), times = 8),
+    sep = ""
+  )
+
+  return(CTDT*100)
+}
+
+#extractCTDT1(x)
+
+
