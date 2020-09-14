@@ -1,4 +1,5 @@
-# FIRM-AVP: A tool for predicting antiviral peptides 
+# FIRM-AVP: A Tool for Antiviral Peptide Prediction
+ 
 
 For installation and application of this tool, please read the manual. 
 
